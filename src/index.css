@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Mojangles font (shipped with the game) ─────────────────────────────── */
+@font-face {
+  font-family: 'Mojangles';
+  src: url('/fonts/Mojangles.ttf') format('truetype');
+  font-display: swap;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: #0d1117;
+  color: #e6edf3;
+  /* Use Mojangles as the display font; fall back to Segoe UI for body text */
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Apply Mojangles to headings and labels */
+.mc-font,
+h1, h2, h3, h4, h5,
+.ant-card-head-title,
+.ant-tabs-tab,
+.ant-btn,
+.ant-tag,
+.mc-label {
+  font-family: 'Mojangles', 'Segoe UI', sans-serif !important;
+  letter-spacing: 0.3px;
+}
+
+/* ── Minecraft-style item slot ──────────────────────────────────────────── */
+.item-slot {
+  width: 36px;
+  height: 36px;
+  background: url('/assets/hud/HUD/hotbar_item_back.png') center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+.item-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Mojangles', monospace;
+  font-size: 9px;
+  color: white;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.7);
+  font-weight: bold;
+  letter-spacing: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* ── Durability bar ─────────────────────────────────────────────────────── */
+.durability-bar {
+  height: 3px;
+  border-radius: 1px;
+  background: #1c2128;
+  overflow: hidden;
+  margin-top: 3px;
+}
+.durability-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.2s;
+}
+
+/* ── Enchant badge ──────────────────────────────────────────────────────── */
+.ench-badge {
+  font-family: 'Mojangles', monospace;
+  font-size: 10px;
+  background: linear-gradient(135deg, #7c3aed22, #a855f733);
+  border: 1px solid #7c3aed55;
+  color: #c084fc;
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* ── HUD icons ──────────────────────────────────────────────────────────── */
+.hud-icon {
+  image-rendering: pixelated;
+  display: inline-block;
+}
+
+/* ── Slot badge (slot labels) ───────────────────────────────────────────── */
+.slot-badge {
+  font-size: 11px;
+  font-family: 'Mojangles', monospace;
+  color: #6e7681;
+}
+
+/* ── Ant Design table row hover ─────────────────────────────────────────── */
+.ant-table-tbody > tr.ant-table-row:hover > td {
+  background: #1c2128 !important;
+}
+
+/* ── Minecraft-style panel background ──────────────────────────────────── */
+.mc-panel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+}
+
+/* ── Drop zone hover ────────────────────────────────────────────────────── */
+.drop-active {
+  border-color: #4ade80 !important;
+  background: rgba(74, 222, 128, 0.05) !important;
+}
