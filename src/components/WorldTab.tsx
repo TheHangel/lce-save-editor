@@ -48,6 +48,25 @@ export default function WorldTab({ loaded, onUpdate }: Props) {
   const difficulty= useMemo(() => get.byte(dataTags, 'Difficulty') ?? get.int(dataTags, 'Difficulty') ?? 1, [dataTags]);
   const gameType  = useMemo(() => get.int(dataTags, 'GameType') ?? 0, [dataTags]);
 
+  // extra world info
+  const totalTime   = useMemo(() => get.long(dataTags, 'Time') ?? 0n, [dataTags]);
+  const lastPlayed  = useMemo(() => get.long(dataTags, 'LastPlayed') ?? 0n, [dataTags]);
+  const hardcore    = useMemo(() => !!(get.byte(dataTags, 'hardcore') ?? 0), [dataTags]);
+  const genName     = useMemo(() => get.str(dataTags, 'generatorName') ?? 'default', [dataTags]);
+  const allowCmds   = useMemo(() => !!(get.byte(dataTags, 'allowCommands') ?? 0), [dataTags]);
+  const xzSize      = useMemo(() => get.int(dataTags, 'XZSize') ?? 0, [dataTags]);
+  const version     = useMemo(() => get.int(dataTags, 'version') ?? 0, [dataTags]);
+  const hasCreative = useMemo(() => !!(get.byte(dataTags, 'hasBeenInCreative') ?? 0), [dataTags]);
+
+  // stronghold & end portal
+  const hasStronghold  = useMemo(() => !!(get.byte(dataTags, 'hasStronghold') ?? 0), [dataTags]);
+  const strongholdX    = useMemo(() => get.int(dataTags, 'StrongholdX') ?? 0, [dataTags]);
+  const strongholdY    = useMemo(() => get.int(dataTags, 'StrongholdY') ?? 0, [dataTags]);
+  const strongholdZ    = useMemo(() => get.int(dataTags, 'StrongholdZ') ?? 0, [dataTags]);
+  const hasEndPortal   = useMemo(() => !!(get.byte(dataTags, 'hasStrongholdEndPortal') ?? 0), [dataTags]);
+  const endPortalX     = useMemo(() => get.int(dataTags, 'StrongholdEndPortalX') ?? 0, [dataTags]);
+  const endPortalZ     = useMemo(() => get.int(dataTags, 'StrongholdEndPortalZ') ?? 0, [dataTags]);
+
   const gameRules = useMemo(() => {
     const gr = dataTags['GameRules'];
     if (gr?.type !== TagType.Compound) return {} as Record<string, string>;
@@ -140,6 +159,69 @@ export default function WorldTab({ loaded, onUpdate }: Props) {
           </Row>
         </Card>
       </Col>
+
+      {/* ── world details ──────────────────────────────────────────── */}
+      <Col span={24}>
+        <Card title={<span style={{ color: '#e6edf3' }}>World Details</span>} style={cardStyle} styles={{ header: { borderBottom: '1px solid #30363d' } }}>
+          <Row gutter={[16, 12]}>
+            {[
+              { label: 'Generator', value: genName === 'flat' ? 'Superflat' : genName === 'default' ? 'Normal' : genName },
+              { label: 'World Size', value: xzSize > 0 ? `${xzSize}×${xzSize} chunks` : 'Unknown' },
+              { label: 'Version', value: version > 0 ? String(version) : 'Unknown' },
+              { label: 'Total Play Time', value: (() => {
+                const ticks = Number(totalTime);
+                const secs = Math.floor(ticks / 20);
+                const h = Math.floor(secs / 3600);
+                const m = Math.floor((secs % 3600) / 60);
+                return h > 0 ? `${h}h ${m}m` : `${m}m`;
+              })() },
+              { label: 'Last Played', value: lastPlayed > 0n ? new Date(Number(lastPlayed)).toLocaleString() : 'Unknown' },
+              { label: 'Hardcore', value: hardcore ? 'Yes' : 'No' },
+              { label: 'Commands', value: allowCmds ? 'Enabled' : 'Disabled' },
+              { label: 'Been in Creative', value: hasCreative ? 'Yes' : 'No' },
+            ].map(({ label, value }) => (
+              <Col xs={12} sm={8} md={6} key={label}>
+                <div style={{ color: '#6e7681', fontSize: 11, marginBottom: 2 }}>{label}</div>
+                <div style={{ color: '#e6edf3', fontSize: 13 }}>{value}</div>
+              </Col>
+            ))}
+          </Row>
+        </Card>
+      </Col>
+
+      {/* ── stronghold & end portal ────────────────────────────────── */}
+      {hasStronghold && (
+        <Col span={24}>
+          <Card title={<span style={{ color: '#e6edf3' }}>Stronghold & End Portal</span>} style={cardStyle} styles={{ header: { borderBottom: '1px solid #30363d' } }}>
+            <Row gutter={[24, 12]}>
+              <Col xs={24} md={12}>
+                <div style={{ color: '#6e7681', fontSize: 11, marginBottom: 4 }}>Stronghold Location</div>
+                <Space size={16}>
+                  {[['X', strongholdX, '#f87171'], ['Y', strongholdY, '#4ade80'], ['Z', strongholdZ, '#60a5fa']].map(([axis, val, color]) => (
+                    <span key={String(axis)}>
+                      <span style={{ color: String(color), fontWeight: 700, marginRight: 4 }}>{axis}</span>
+                      <span style={{ color: '#e6edf3', fontFamily: 'monospace' }}>{val}</span>
+                    </span>
+                  ))}
+                </Space>
+              </Col>
+              {hasEndPortal && (
+                <Col xs={24} md={12}>
+                  <div style={{ color: '#6e7681', fontSize: 11, marginBottom: 4 }}>End Portal</div>
+                  <Space size={16}>
+                    {[['X', endPortalX, '#f87171'], ['Z', endPortalZ, '#60a5fa']].map(([axis, val, color]) => (
+                      <span key={String(axis)}>
+                        <span style={{ color: String(color), fontWeight: 700, marginRight: 4 }}>{axis}</span>
+                        <span style={{ color: '#e6edf3', fontFamily: 'monospace' }}>{val}</span>
+                      </span>
+                    ))}
+                  </Space>
+                </Col>
+              )}
+            </Row>
+          </Card>
+        </Col>
+      )}
 
       {/* ── time & weather ────────────────────────────────────────── */}
       <Col xs={24} md={12} style={{ display: 'flex', flexDirection: 'column' }}>

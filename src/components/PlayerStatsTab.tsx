@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
-import { Card, Row, Col, Slider, InputNumber, Select, Space, Typography, Divider, Tag } from 'antd';
+import { Card, Row, Col, Slider, InputNumber, Select, Space, Typography, Divider, Tag, Table, Empty } from 'antd';
 import type { LoadedSave } from '../lib/containers';
 import { TagType, nbt, cloneNbt, get } from '../lib/nbt';
-import type { NbtList, NbtDouble } from '../lib/nbt';
+import type { NbtList, NbtDouble, NbtCompound, NbtByte, NbtShort } from '../lib/nbt';
+import { getItemName } from '../lib/items';
+import { enchantLabel, toRoman, ENCHANT_BY_ID } from '../lib/enchants';
+import ItemIcon from './ItemIcon';
 
 const { Text } = Typography;
 
@@ -14,6 +17,32 @@ function HudIcon({ src, alt, scale = 2 }: { src: string; alt: string; scale?: nu
     />
   );
 }
+
+const EFFECT_NAMES: Record<number, { name: string; color: string }> = {
+  1:  { name: 'Speed',            color: '#7dd3fc' },
+  2:  { name: 'Slowness',         color: '#94a3b8' },
+  3:  { name: 'Haste',            color: '#fcd34d' },
+  4:  { name: 'Mining Fatigue',   color: '#78716c' },
+  5:  { name: 'Strength',         color: '#f87171' },
+  6:  { name: 'Instant Health',   color: '#f87171' },
+  7:  { name: 'Instant Damage',   color: '#7f1d1d' },
+  8:  { name: 'Jump Boost',       color: '#86efac' },
+  9:  { name: 'Nausea',           color: '#a3e635' },
+  10: { name: 'Regeneration',     color: '#fb7185' },
+  11: { name: 'Resistance',       color: '#a8a29e' },
+  12: { name: 'Fire Resistance',  color: '#fb923c' },
+  13: { name: 'Water Breathing',  color: '#67e8f9' },
+  14: { name: 'Invisibility',     color: '#d4d4d8' },
+  15: { name: 'Blindness',        color: '#27272a' },
+  16: { name: 'Night Vision',     color: '#a78bfa' },
+  17: { name: 'Hunger',           color: '#84cc16' },
+  18: { name: 'Weakness',         color: '#a1a1aa' },
+  19: { name: 'Poison',           color: '#4ade80' },
+  20: { name: 'Wither',           color: '#525252' },
+  21: { name: 'Health Boost',     color: '#ef4444' },
+  22: { name: 'Absorption',       color: '#fbbf24' },
+  23: { name: 'Saturation',       color: '#f87171' },
+};
 
 interface Props {
   loaded: LoadedSave;
@@ -70,6 +99,56 @@ export default function PlayerStatsTab({ loaded, onUpdate }: Props) {
       l.items = items;
     });
   }
+
+  // ── active effects ──────────────────────────────────────────
+  const activeEffects = useMemo(() => {
+    const list = tags['ActiveEffects'];
+    if (!list || list.type !== TagType.List) return [];
+    return (list as NbtList).items
+      .filter(it => it.type === TagType.Compound)
+      .map(it => {
+        const t = (it as NbtCompound).tags;
+        return {
+          id: t['Id']?.type === TagType.Byte ? (t['Id'] as NbtByte).value : 0,
+          amplifier: t['Amplifier']?.type === TagType.Byte ? (t['Amplifier'] as NbtByte).value : 0,
+          duration: t['Duration']?.type === TagType.Int ? (t['Duration'] as import('../lib/nbt').NbtInt).value : 0,
+          ambient: t['Ambient']?.type === TagType.Byte ? !!(t['Ambient'] as NbtByte).value : false,
+        };
+      });
+  }, [tags]);
+
+  // ── ender chest ──────────────────────────────────────────
+  const enderItems = useMemo(() => {
+    const list = tags['EnderItems'];
+    if (!list || list.type !== TagType.List) return [];
+    return (list as NbtList).items
+      .filter(it => it.type === TagType.Compound)
+      .map(it => {
+        const t = (it as NbtCompound).tags;
+        const slot = t['Slot']?.type === TagType.Byte ? (t['Slot'] as NbtByte).value : 0;
+        const id = t['id']?.type === TagType.Short ? (t['id'] as NbtShort).value : 0;
+        const count = t['Count']?.type === TagType.Byte ? (t['Count'] as NbtByte).value : 1;
+        const damage = t['Damage']?.type === TagType.Short ? (t['Damage'] as NbtShort).value : 0;
+        // enchants
+        const tagComp = t['tag'];
+        const enchants: { id: number; lvl: number }[] = [];
+        if (tagComp?.type === TagType.Compound) {
+          const enchList = (tagComp as NbtCompound).tags['ench'];
+          if (enchList?.type === TagType.List) {
+            for (const e of (enchList as NbtList).items) {
+              if (e.type !== TagType.Compound) continue;
+              const et = (e as NbtCompound).tags;
+              enchants.push({
+                id: et['id']?.type === TagType.Short ? (et['id'] as NbtShort).value : 0,
+                lvl: et['lvl']?.type === TagType.Short ? (et['lvl'] as NbtShort).value : 1,
+              });
+            }
+          }
+        }
+        return { slot, id, count, damage, enchants };
+      })
+      .sort((a, b) => a.slot - b.slot);
+  }, [tags]);
 
   const heartColor  = (hp: number) => hp > 12 ? '#f87171' : hp > 6 ? '#facc15' : '#ef4444';
   const foodColor   = (f: number)  => f > 14 ? '#a3e635' : f > 6  ? '#facc15' : '#f87171';
@@ -238,6 +317,89 @@ export default function PlayerStatsTab({ loaded, onUpdate }: Props) {
               </div>
             ))}
           </Space>
+        </Card>
+      </Col>
+
+      {/* ── active potion effects ─────────────────────────────────── */}
+      {activeEffects.length > 0 && (
+        <Col span={24}>
+          <Card title={<span style={{ color: '#e6edf3' }}>Active Effects</span>} style={cardStyle} styles={{ header: { borderBottom: '1px solid #30363d' } }}>
+            <Row gutter={[12, 12]}>
+              {activeEffects.map((eff, i) => {
+                const info = EFFECT_NAMES[eff.id] ?? { name: `Effect #${eff.id}`, color: '#6e7681' };
+                const seconds = Math.floor(eff.duration / 20);
+                const min = Math.floor(seconds / 60);
+                const sec = seconds % 60;
+                return (
+                  <Col xs={24} sm={12} md={8} key={i}>
+                    <div style={{
+                      background: '#0d1117',
+                      border: `1px solid ${info.color}44`,
+                      borderRadius: 6,
+                      padding: '10px 12px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}>
+                      <div>
+                        <div style={{ color: info.color, fontSize: 13, fontWeight: 600 }}>
+                          {info.name} {eff.amplifier > 0 ? toRoman(eff.amplifier + 1) : ''}
+                        </div>
+                        <div style={{ color: '#484f58', fontSize: 11 }}>
+                          {min}:{sec.toString().padStart(2, '0')} remaining
+                        </div>
+                      </div>
+                      {eff.ambient && <Tag color="default" style={{ fontSize: 10 }}>Ambient</Tag>}
+                    </div>
+                  </Col>
+                );
+              })}
+            </Row>
+          </Card>
+        </Col>
+      )}
+
+      {/* ── ender chest ───────────────────────────────────────────── */}
+      <Col span={24}>
+        <Card title={<span style={{ color: '#e6edf3' }}>Ender Chest</span>} style={cardStyle} styles={{ header: { borderBottom: '1px solid #30363d' } }}>
+          {enderItems.length === 0 ? (
+            <Empty description={<Text style={{ color: '#484f58' }}>Empty</Text>} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          ) : (
+            <Row gutter={[8, 8]}>
+              {enderItems.map(item => (
+                <Col xs={12} sm={8} md={6} key={item.slot}>
+                  <div style={{
+                    background: '#0d1117',
+                    border: '1px solid #30363d',
+                    borderRadius: 6,
+                    padding: '8px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}>
+                    <ItemIcon itemId={item.id} size={32} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ color: '#e6edf3', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {getItemName(item.id)}
+                      </div>
+                      <div style={{ color: '#6e7681', fontSize: 11 }}>
+                        ×{item.count}
+                        {item.damage > 0 ? ` · dmg ${item.damage}` : ''}
+                      </div>
+                      {item.enchants.length > 0 && (
+                        <div style={{ color: '#a78bfa', fontSize: 10, marginTop: 2 }}>
+                          {item.enchants.map(e => {
+                            const info = ENCHANT_BY_ID[e.id];
+                            return info ? `${info.name} ${toRoman(e.lvl)}` : `#${e.id} ${toRoman(e.lvl)}`;
+                          }).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          )}
         </Card>
       </Col>
     </Row>

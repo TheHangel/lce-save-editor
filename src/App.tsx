@@ -7,6 +7,7 @@ import {
   DatabaseOutlined,
   UserOutlined,
   GlobalOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import type { LoadedSave } from './lib/containers';
 import { loadSaveFile, buildSaveBytes } from './lib/containers';
@@ -15,6 +16,7 @@ import FileDropZone from './components/FileDropZone';
 import InventoryTab from './components/InventoryTab';
 import PlayerStatsTab from './components/PlayerStatsTab';
 import WorldTab from './components/WorldTab';
+import WorldMapTab from './components/WorldMapTab';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text, Link } = Typography;
@@ -110,6 +112,13 @@ export default function App() {
           loaded={loaded}
           onUpdate={updateLevelNbt}
         />
+      ),
+    }] : []),
+    ...(loaded.container ? [{
+      key: 'map',
+      label: <span style={{ fontFamily: 'Mojangles, sans-serif' }}><EnvironmentOutlined /> World Map</span>,
+      children: (
+        <WorldMapTab loaded={loaded} />
       ),
     }] : []),
   ] : [];
